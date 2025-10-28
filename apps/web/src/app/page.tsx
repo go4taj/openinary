@@ -1,61 +1,23 @@
 "use client";
 
-import { CopyInput } from "@/components/ui/copy-input";
-import { useMemo } from "react";
-
-function Section() {
-  const exampleUrls = useMemo(() => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-    return [
-      {
-        title: "Resize image to 300x200",
-        url: `${baseUrl}/t/resize:300x200/public/image.png`,
-      },
-      {
-        title: "Convert to WebP with 80% quality",
-        url: `${baseUrl}/t/format:webp/quality:80/public/image.png`,
-      },
-      {
-        title: "Smart crop to square with face detection",
-        url: `${baseUrl}/t/gravity:face/resize:400x400/public/image.png`,
-      },
-      {
-        title: "Resize video with 80% quality",
-        url: `${baseUrl}/t/resize:640x360/quality:80/public/video.mp4`,
-      },
-    ];
-  }, []);
-  return (
-    <section className="px-6 py-8">
-      <div className="space-y-6">
-        <h2 className="text-left text-3xl font-semibold lg:text-4xl">
-          Try the API now!
-        </h2>
-        <p className="text-muted-foreground leading-relaxed">
-          Place an image inside your storage folder and modify the URL to
-          transform it.
-        </p>
-      </div>
-
-      <div className="mt-8 grid gap-4 md:grid-cols-2">
-        {exampleUrls.map((example, index) => (
-          <div
-            key={index}
-            className="p-4 rounded-lg border border-black/10 bg-neutral-50"
-          >
-            <h3 className="font-medium mb-2">{example.title}</h3>
-            <CopyInput value={example.url} />
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
+import { useEffect } from "react";
 
 export default function HomePage() {
+  useEffect(() => {
+    // Check if user is logged in
+    const token = localStorage.getItem("token");
+    if (token) {
+      window.location.href = "/media";
+    } else {
+      window.location.href = "/login";
+    }
+  }, []);
+
   return (
-    <div className="min-h-screen bg-background">
-      <Section />
+    <div className="flex items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-950">
+      <div className="text-center text-slate-900 dark:text-white">
+        Redirecting...
+      </div>
     </div>
   );
 }

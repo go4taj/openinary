@@ -10,7 +10,7 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 app.use("/*", async (c, next) => {
 	const origin = CORS_ORIGIN;
 	c.header("Access-Control-Allow-Origin", origin);
-	c.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+	c.header("Access-Control-Allow-Methods", "GET,PUT,POST,OPTIONS,DELETE");
 	c.header("Access-Control-Allow-Headers", "Content-Type,Authorization");
 	// If it's a preflight request, respond immediately
 	if (c.req.method === "OPTIONS") return c.text("ok", 200);

@@ -1,11 +1,16 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Eye, Copy, Trash, Check } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 export default function MediaLibraryPage() {
   const [files, setFiles] = useState<Array<{ url: string; type: string; name: string; size?: number }>>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const router = useRouter();
+  const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
 
   const uploadFile = useCallback(async (file: File) => {
     const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "";
@@ -63,6 +68,43 @@ export default function MediaLibraryPage() {
         }
       })();
     }, []);
+
+  const handleCopyUrl = useCallback((e: React.MouseEvent, url: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      navigator.clipboard.writeText(url);
+      setCopiedUrl(url);
+      setTimeout(() => setCopiedUrl(null), 1400);
+    } catch (err) {
+      // ignore
+    }
+  }, []);
+
+  const handlePreview = useCallback((e: React.MouseEvent, href: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    router.push(href);
+  }, [router]);
+
+  const handleDelete = useCallback(async (e: React.MouseEvent, name: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+    try {
+      const res = await fetch(`${apiBase}/media?name=${encodeURIComponent(name)}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setFiles(prev => prev.filter(f => f.name !== name));
+      } else {
+        // optionally show error UI
+        console.warn("Delete failed");
+      }
+    } catch (err) {
+      console.warn("Delete error", err);
+    }
+  }, []);
   return (
     <div className="p-6">
       <div className="">
@@ -92,32 +134,104 @@ export default function MediaLibraryPage() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {files.map((file, index) => (
-            <div key={index} className="group relative bg-card border border-border rounded-lg overflow-hidden">
-              <div className="w-full relative bg-gray-100">
-                <div style={{ paddingTop: "100%" }} />
-                {file.type === "image" ? (
-                  <img src={file.url} alt={file.name} className="absolute inset-0 w-full h-full object-cover" />
-                ) : (
-                  <video src={file.url} className="absolute inset-0 w-full h-full object-cover" controls muted playsInline />
-                )}
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <div className="text-white text-sm p-2 text-center">
-                    <div className="font-medium truncate max-w-[100%]">{file.name}</div>
-                    <div className="text-xs mt-1">
-                      {file.size ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` : "-"}
+          {files.map((file, index) => {
+            const previewHref = `/media/preview?url=${encodeURIComponent(file.url)}&name=${encodeURIComponent(file.name)}`;
+            if (file.type === 'image') {
+              return (
+                <Link key={index} href={previewHref} className="group relative bg-card border border-border rounded-lg overflow-hidden block">
+                  <div className="w-full relative bg-gray-100">
+                    <div style={{ paddingTop: "100%" }} />
+                    <img src={file.url} alt={file.name} className="absolute inset-0 w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center p-3">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e)=>handlePreview(e, previewHref)}
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-md text-white/90 hover:text-white focus-visible:ring-[3px] focus-visible:ring-ring/50 outline-none"
+                          aria-label="Preview"
+                          title="Preview"
+                        >
+                          <Eye className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={(e)=>handleCopyUrl(e, file.url)}
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-md text-white/90 hover:text-white focus-visible:ring-[3px] focus-visible:ring-ring/50 outline-none"
+                          aria-label={copiedUrl === file.url ? "Copied" : "Copy URL"}
+                          title={copiedUrl === file.url ? "Copied" : "Copy URL"}
+                        >
+                          {copiedUrl === file.url ? (
+                            <Check className="w-5 h-5" />
+                          ) : (
+                            <Copy className="w-5 h-5" />
+                          )}
+                        </button>
+                        <button
+                          onClick={(e)=>handleDelete(e, file.name)}
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-md text-red-700 hover:text-red-400 focus-visible:ring-[3px] focus-visible:ring-ring/50 outline-none"
+                          aria-label="Delete"
+                          title="Delete"
+                        >
+                          <Trash fill="lab(40.4273% 67.2623 53.7441)" className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-2">
+                    <div className="text-sm font-medium truncate">{file.name}</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {file.size ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` : "-"} • {file.type}
+                    </div>
+                  </div>
+                </Link>
+              );
+            }
+
+            return (
+              <Link key={index} href={previewHref} className="group relative bg-card border border-border rounded-lg overflow-hidden block">
+                <div className="w-full relative bg-gray-100">
+                  <div style={{ paddingTop: "100%" }} />
+                  <video src={file.url} className="absolute inset-0 w-full h-full object-cover" muted playsInline />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center p-3">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={(e)=>handlePreview(e, previewHref)}
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-md text-white/90 hover:text-white focus-visible:ring-[3px] focus-visible:ring-ring/50 outline-none"
+                        aria-label="Preview"
+                        title="Preview"
+                      >
+                        <Eye className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={(e)=>handleCopyUrl(e, file.url)}
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-md text-white/90 hover:text-white focus-visible:ring-[3px] focus-visible:ring-ring/50 outline-none"
+                        aria-label={copiedUrl === file.url ? "Copied" : "Copy URL"}
+                        title={copiedUrl === file.url ? "Copied" : "Copy URL"}
+                      >
+                        {copiedUrl === file.url ? (
+                          <Check className="w-5 h-5" />
+                        ) : (
+                          <Copy className="w-5 h-5" />
+                        )}
+                      </button>
+                      <button
+                        onClick={(e)=>handleDelete(e, file.name)}
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-md text-red-700 hover:text-red-400 focus-visible:ring-[3px] focus-visible:ring-ring/50 outline-none"
+                        aria-label="Delete"
+                        title="Delete"
+                      >
+                        <Trash fill="lab(40.4273% 67.2623 53.7441)" className="w-5 h-5" />
+                      </button>
                     </div>
                   </div>
                 </div>
-              </div>
-              <div className="p-2">
-                <div className="text-sm font-medium truncate">{file.name}</div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {file.size ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` : "-"} • {file.type}
+                <div className="p-2">
+                  <div className="text-sm font-medium truncate">{file.name}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {file.size ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` : "-"} • {file.type}
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
+              </Link>
+            );
+          })}
         </div>
 
         {files.length === 0 && (

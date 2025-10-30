@@ -10,8 +10,13 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 app.use("/*", async (c, next) => {
 	const origin = CORS_ORIGIN;
 	c.header("Access-Control-Allow-Origin", origin);
-	c.header("Access-Control-Allow-Methods", "GET,PUT,POST,OPTIONS,DELETE");
+	c.header("Access-Control-Allow-Methods", "GET,HEAD,PUT,POST,OPTIONS,DELETE");
 	c.header("Access-Control-Allow-Headers", "Content-Type,Authorization");
+	// Expose size-related headers so the web app can read them
+	c.header(
+		"Access-Control-Expose-Headers",
+		"Content-Length, X-Optimized-Size, X-Original-Size, X-Compression-Ratio, X-Savings-Percent"
+	);
 	// If it's a preflight request, respond immediately
 	if (c.req.method === "OPTIONS") return c.text("ok", 200);
 	await next();
@@ -79,6 +84,7 @@ app.get("/public/*", async (c) => {
 		else if (ext === ".webp") type = "image/webp";
 		else if (ext === ".mp4") type = "video/mp4";
 		c.header("Content-Type", type);
+		c.header("Content-Length", String(data.length));
 		return c.body(data);
 	} catch (err) {
 		return c.text("Error", 500);

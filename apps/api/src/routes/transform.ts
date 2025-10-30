@@ -263,7 +263,15 @@ t.get("/*", async (c) => {
         optimizationResult.compressionRatio.toFixed(2)
       );
       c.header("X-Savings-Percent", optimizationResult.savings.toFixed(1));
+    } else {
+      // Ensure size header is present even without advanced optimization
+      c.header("X-Optimized-Size", buffer.length.toString());
     }
+
+    // Always include Content-Length for reliable size reads
+    try {
+      c.header("Content-Length", buffer.length.toString());
+    } catch {}
 
     return c.body(buffer);
   } catch (error) {
